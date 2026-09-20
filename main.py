@@ -5,8 +5,6 @@ Author: Oluatomisin Tomoloju
 Description: This script is an interactive procedural CLI tool for CampusCart using variables, conditional, loops, dictionaries and list structures.
 
 """
-import time
-
 
 # Inventory
 inventory = { 
@@ -23,10 +21,7 @@ inventory = {
 }
 
 
-cart_list = [
-  
-
-]
+cart_list = []
 
 # ASCII Function
 def box(text, padding=2):
@@ -221,17 +216,6 @@ def manage_inventory():
 
 
 """Customer Section"""   
-
-
-# View Cart Function
-# def view_cart():
-#   if not cart_list:
-#       print()
-#       print("="*20)
-#       print("Your cart is empty. Please, go through the catalogue to add items.")
-#       print("="*20)
-#   else:
-#     print(cart_list)
 
 def view_cart():
   if not cart_list:

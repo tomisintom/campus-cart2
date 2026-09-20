@@ -515,8 +515,8 @@ while True:
         break
       else:
         print ("Enter a valid option")
-  elif admin_input == "#":
-    break
+  elif first_input == "#":
+      break
   else:
     print("="*20)
     print ("Enter a valid option")

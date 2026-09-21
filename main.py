@@ -342,7 +342,7 @@ def checkout():
 # Add to cart Function
 def add_to_cart():
   while True:
-    item = input("Enter the item: (or enter exit to quit ) ").strip().lower()
+    item = input("Enter the name of the item: (or enter exit to quit ) ").strip().lower()
     if item == "exit":
       break
     else:

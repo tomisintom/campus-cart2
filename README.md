@@ -257,6 +257,28 @@ Correction Tape added successfully
 +--------------------------------------------------------------+
 ```
 
+## Flow of a Successful Purchase
+
+### Available Options
+
+![Available Options](images/1.png)
+
+### Display Catalogue
+
+![Display Catalogue](images/2.png)
+
+### Add to Cart
+
+![Add to Cart](images/3.png)
+
+### View Cart
+
+![View Cart](images/4.png)
+
+### Checkout
+
+![Checkout](images/5.png)
+
 ## Limitations
 
 The current version does not yet provide:

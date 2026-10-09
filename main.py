@@ -42,7 +42,9 @@ def admin_auth():
     '''Authenticates Admnin Login'''
     if  not ADMIN_PASSWORD:
         message_box("ADMIN PASSWORD NOT SET")
-        return
+        print("Set the ADMIN_PASSWORD environment variable and restart the app.")
+        print("See the README for instructions.")
+        return False
     entered = input("Admin password: ")
     if entered != ADMIN_PASSWORD:
         message_box("ACCESS DENIED! Wrong Password")

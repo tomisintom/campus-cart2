@@ -55,6 +55,51 @@ CampusCart provides a simple checkout and inventory workflow in the terminal. Cu
 - A terminal or command prompt
 - No third-party packages are required
 
+## Setup
+
+The admin section needs a password, which is read from an environment
+variable called ADMIN_PASSWORD. Set it in the same terminal where you
+will run the app.
+
+**Windows (PowerShell):**
+$env:ADMIN_PASSWORD="your-password"
+
+**Windows (Command Prompt):**
+set ADMIN_PASSWORD=your-password
+
+**Mac/Linux:**
+export ADMIN_PASSWORD="your-password"
+
+Then run:
+python main.py
+
+This lasts only for the current terminal window. If you open a new
+terminal, set it again.
+
+### Optional: make it permanent
+
+**Windows:**
+
+1. Run this once:
+   setx ADMIN_PASSWORD "your-password"
+2. Close ALL VS Code windows completely. Closing only the terminal
+   panel is not enough, because VS Code reads environment variables
+   only when it starts.
+3. Reopen VS Code and open a new terminal.
+4. Check that it worked:
+   - PowerShell: echo $env:ADMIN_PASSWORD
+   - Command Prompt: echo %ADMIN_PASSWORD%
+     If it prints your password, you're ready to run: python main.py
+
+Note: `setx` does not change the terminal you ran it in. It only
+applies to terminals and programs opened afterward. If the app still
+says "Admin password not set" after restarting VS Code, restart your
+computer.
+
+**Mac/Linux:**
+Add this line to ~/.bashrc or ~/.zshrc, then open a new terminal:
+export ADMIN_PASSWORD="your-password"
+
 ## ASCII CLI MOCKUP
 
 The mockup below reflects the options available in the current CampusCart program.

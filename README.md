@@ -55,7 +55,7 @@ CampusCart provides a simple checkout and inventory workflow in the terminal. Cu
 - A terminal or command prompt
 - No third-party packages are required
 
-## Setup
+## Password Setup
 
 The admin section needs a password, which is read from an environment
 variable called ADMIN_PASSWORD. Set it in the same terminal where you
@@ -341,7 +341,6 @@ These items are in the works for future development, but they are not part of th
 ## Future Improvements
 
 - Save inventory and transaction data in JSON, CSV, or a database.
-- Add administrator authentication.
 - Allow customers to remove items or change quantities before checkout.
 - Generate unique receipt numbers and save transaction history.
 - Add daily and weekly sales reports.

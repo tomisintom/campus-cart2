@@ -1,21 +1,22 @@
 # CAMPUSCART
 
-CampusCart is an interactive command-line shopping and inventory application for campus vendors. It provides separate customer and administrator menus, allowing customers to browse products and complete purchases while administrators maintain the store's inventory.
+CampusCart is an interactive command-line shopping and inventory application for campus vendors. It provides separate customer and administrator menus, allowing customers to browse products and complete purchases while administrators maintain the store's inventory. Every checkout is recorded in a transaction log.
 
 ## Overview
 
 Campus vendors often rely on handwritten stock records and manual checkout calculations. CampusCart demonstrates how a lightweight Python program can bring common sales tasks into one keyboard-driven interface without requiring dedicated point-of-sale hardware.
 
-The current version uses Python variables, conditionals, loops, functions, dictionaries, lists, and formatted terminal output.
+The current version is organised into separate modules and uses Python variables, conditionals, loops, functions, dictionaries, lists, decorators, file handling, unit tests, and formatted terminal output.
 
 ## Problem Statement
 
 CampusCart is designed to address several common problems faced by small campus vendors:
 
 - **Manual inventory tracking:** Paper records can become inaccurate, especially during busy periods.
-- **Slow checkout:** Manually calculating item totals and discounts can delay customers.
+- **Slow checkout:** Manually calculating item totals, discounts, and tax can delay customers.
 - **Stock-control errors:** Without an immediate stock check, a vendor may attempt to sell more units than are available.
 - **Unclear purchase summaries:** Customers benefit from seeing their selected items, quantities, subtotals, and final total in a consistent format.
+- **No sales record:** Without a written history, it is hard to review what was sold and when.
 
 ## Target Audience
 
@@ -25,29 +26,52 @@ CampusCart is designed to address several common problems faced by small campus 
 
 ## Key Value Proposition
 
-CampusCart provides a simple checkout and inventory workflow in the terminal. Customers can complete a purchase using item names, while administrators can update the product catalogue without editing the inventory dictionary during the running session.
+CampusCart provides a simple checkout and inventory workflow in the terminal. Customers can build a cart using item names or product IDs, and every purchase is saved to a transaction log. Administrators can restock, add, and remove products and check which items are running low, all without editing the code while the program is running.
 
 ## Current Features
 
 ### Customer features
 
-- Display the product catalogue with product IDs, names, prices, and available stock.
-- Search for a product by entering its name.
-- Add one or more units of a product to the cart.
+- Display the product catalogue, sorted by price from lowest to highest, with product IDs, names, prices, and available stock.
+- Add products to the cart by entering the product name or ID.
 - Add more units of a product already in the cart.
 - Prevent cart quantities from exceeding the available stock.
-- View an itemised cart and total.
-- Print a receipt during checkout.
-- Apply a 10% discount automatically when the cart total is greater than `$20.00`.
-- Reduce inventory quantities after checkout.
-- Clear the cart after a completed checkout.
+- Remove some or all units of an item from the cart.
+- View an itemised cart with a subtotal.
+- Check out and receive a receipt.
+- Apply a 10% discount automatically when the order subtotal is greater than `$20.00`.
+- Add 7.5% tax to the final total.
+- Re-check stock at checkout. If an item is no longer available in the requested quantity, the checkout is refused and the cart is kept so it can be adjusted.
+- Reduce inventory quantities after a successful checkout and clear the cart.
+- Reject invalid quantities (such as letters or zero) without stopping the program.
 
 ### Administrator features
 
+- Protect the admin menu with a password (see [Password Setup](#password-setup)).
 - Display the current inventory.
-- Update the price of an existing product.
-- Replace the stock quantity of an existing product.
+- Run a low-stock report for items below a chosen quantity.
+- Restock an existing product by adding units.
 - Add a new product with an ID, name, price, and stock quantity.
+- Delete a product from the inventory.
+
+### Transaction logging
+
+- Every checkout attempt is written to `transactions.txt` automatically through a decorator in `logger.py`.
+- Each entry records the transaction ID, date, time, status (`SUCCESS`, `FAILED`, or `ERROR`), message, items bought, number of unique items and total units, subtotal, final total, and processing time.
+- Failed checkouts (for example, not enough stock) are logged too, so there is a complete history.
+
+## Project Structure
+
+| File             | Purpose                                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main.py`        | The command-line interface. Run this file to start the app.                                                                                          |
+| `inventory.py`   | Inventory functions: stock checks and updates, adding and deleting products, price calculation, low-stock filtering, and sorted catalogue display.   |
+| `cart.py`        | Cart functions: adding and removing items, subtotal calculation, and receipt lines.                                                                  |
+| `checkout.py`    | The `checkout` function: validates stock, calculates the final total, updates inventory, and clears the cart. It is wrapped by the logger decorator. |
+| `logger.py`      | The `log_transaction` decorator that writes each checkout to `transactions.txt`.                                                                     |
+| `test_logger.py` | Unit tests for the logger.                                                                                                                           |
+
+All files must be in the same folder.
 
 ## Requirements
 
@@ -100,206 +124,152 @@ computer.
 Add this line to ~/.bashrc or ~/.zshrc, then open a new terminal:
 export ADMIN_PASSWORD="your-password"
 
+## Transaction Log
+
+The first checkout creates a file called `transactions.txt` in the folder you run the app from. Later checkouts add new entries to the end of the same file; nothing is overwritten. To start a fresh log, delete the file.
+
+Example entry:
+
+```
+============================================================
+Transaction ID : 87ADF45E
+Date           : 2026-10-31
+Time           : 05:59:46
+Status         : SUCCESS
+Message        : Payment successful.
+------------------------------------------------------------
+Items Bought:
+  [101] Notebook | 2 x $2.50 = $5.00
+  [110] Stapler | 2 x $8.75 = $17.50
+------------------------------------------------------------
+Unique Items   : 2
+Total Units    : 4
+Subtotal       : $22.50
+Total (final)  : $21.78
+Processing Time: 0.0000s
+============================================================
+```
+
+The log contains purchase records, so if you use Git, add `transactions.txt` to your `.gitignore` file to keep it out of the repository.
+
+## Running the Tests
+
+The logger has a unit test suite. From the project folder, run:
+
+```
+python -m unittest test_logger -v
+```
+
+The tests write to a temporary file, so your real `transactions.txt` is not touched.
+
 ## ASCII CLI MOCKUP
 
 The mockup below reflects the options available in the current CampusCart program.
 
 ```
- +--------------------------------------------------------------+
-|                                                              |
-|                    WELCOME TO CAMPUS CART                     |
-|                                                              |
-+--------------------------------------------------------------+
++--------------------------+
+|                          |
+|  WELCOME TO CAMPUS CART  |
+|                          |
++--------------------------+
 
-Select an option that applies to you:
-
-    [1] Customer
-    [2] Administrator
-    [#] Exit
-
-Enter an option: _
-
-
-================================================================
-                         CUSTOMER MENU
-================================================================
-
-+--------------------------------------------------------------+
-|                    HOW CAN I HELP YOU?                        |
-+--------------------------------------------------------------+
-
-    [1] Display catalogue
-    [2] Add to cart
-    [3] View cart
-    [4] Checkout
-    [0] Exit menu
+1 = I am a customer
+2 = I am the admin
+# = Exit
 
 Enter an option: 1
 
+--- How can I help you today? ---
+1 = Display catalogue
+2 = Add to cart
+3 = View cart
+4 = Remove from cart
+5 = Checkout
+0 = Exit Menu
 
-================================================================
-                       PRODUCT CATALOGUE
-================================================================
+Enter an option: 1
 
-ID      PRODUCT                         PRICE     STOCK
-----------------------------------------------------------
-101     Notebook                        $2.50        15
-102     Ballpoint Pen                   $1.20        50
-103     Mechanical Pencil               $3.00        30
-104     Highlighter Set                 $4.50        20
-105     Sticky Note                     $1.80        45
-106     Paperclips Pack                 $0.99       100
-107     Three-Ring Binder               $5.25        12
-108     Scissors                        $3.50        25
-109     Glue Stick                      $1.10        60
-110     Stapler                         $8.75         8
-==========================================================
+--- Product Catalog (Ascending (Low to High)) ---
 
-
-================================================================
-                         ADD TO CART
-================================================================
-
-Enter the name of the item (or enter "exit" to quit): Notebook
-How many? 2
-
-==============================
-Notebook added to cart successfully
-==============================
-
-Enter the name of the item (or enter "exit" to quit): Stapler
-How many? 2
-
-==============================
-Stapler added to cart successfully
-==============================
-
-Enter the name of the item (or enter "exit" to quit): exit
-
-
-================================================================
-                         VIEW CART
-================================================================
-
-YOUR SHOPPING CART
-
-+--------+--------------------------+----------+--------------+
-| ID     | PRODUCT                  | QUANTITY |     SUBTOTAL |
-+--------+--------------------------+----------+--------------+
-| 101    | Notebook                 |        2 |        $5.00 |
-| 110    | Stapler                  |        2 |       $17.50 |
-+--------+--------------------------+----------+--------------+
-|        |                          |    TOTAL |       $22.50 |
-+--------+--------------------------+----------+--------------+
-
-
-================================================================
-                           CHECKOUT
-================================================================
-
-YOUR RECEIPT
------------------------------------------------------------------
-
-Notebook               | Quantity:   2 | Subtotal: $    5.00
-Stapler                | Quantity:   2 | Subtotal: $   17.50
------------------------------------------------------------------
-Total before discount:                         $     22.50
-Discount (10%):                                -$     2.25
------------------------------------------------------------------
-Total after discount:                          $     20.25
-
-
-+-----------------------------------------------------+
-|                                                     |
-|    Thank you for your patronage. See you again      |
-|                                                     |
-+-----------------------------------------------------+
-
-Purchase completed successfully.
-Stock quantities have been updated.
-Your shopping cart is now empty.
-
-
-================================================================
-                      ADMINISTRATOR MENU
-================================================================
-
-Welcome back, Admin. What do you want to do today?
-
-    [1] Display inventory
-    [2] Manage inventory
-    [0] Exit menu
+ID     | Item Name                 | Price      | Stock
+-------------------------------------------------------
+106    | Paperclips Pack           | $0.99      | 100
+109    | Glue Stick                | $1.10      | 60
+102    | Ballpoint Pen             | $1.20      | 50
+105    | Sticky Note               | $1.80      | 45
+101    | Notebook                  | $2.50      | 15
+103    | Mechanical Pencil         | $3.00      | 30
+108    | Scissors                  | $3.50      | 25
+104    | Highlighter Set           | $4.50      | 20
+107    | Three-Ring Binder         | $5.25      | 12
+110    | Stapler                   | $8.75      | 8
+-------------------------------------------------------
 
 Enter an option: 2
+Enter the item name or ID: Notebook
+How many? 2
+2 x Notebook added to cart.
 
+Enter an option: 2
+Enter the item name or ID: 110
+How many? 2
+2 x Stapler added to cart.
 
-================================================================
-                  INVENTORY MANAGEMENT CENTER
-================================================================
+Enter an option: 3
 
-    [1] Update product price
-    [2] Update product stock
-    [3] Add new product
-    [0] Return to main menu
+Notebook (x2) - $5.00
+Stapler (x2) - $17.50
+Subtotal: $22.50
 
-Enter an option: _
+Enter an option: 5
 
+=== YOUR RECEIPT ===
+Notebook (x2) - $5.00
+Stapler (x2) - $17.50
+Subtotal: $22.50
+Total (after discounts & tax): $21.78
+Thank you for your patronage. See you again!
 
-----------------------------------------------------------------
-UPDATE PRODUCT PRICE
-----------------------------------------------------------------
+Enter an option: 0
 
-Enter the product ID: 101
+Enter an option: 2
+Admin password: ********
+Welcome back, Admin.
 
-Current product: Notebook
-Current price: $2.50
+--- Admin Menu ---
+1 = Display inventory
+2 = Low stock report
+3 = Restock a product
+4 = Add new product
+5 = Delete a product
+0 = Exit Menu
 
-Enter the new price: $3.00
+Enter an option: 2
+Show items with stock below: 10
 
-==============================
-Price updated successfully
-==============================
+--- Low Stock Alert Report ---
 
+Item ID  | Item Name                 | Price      | Stock Remaining
+--------------------------------------------------------------------
+110      | Stapler                   | $8.75      | 6
+--------------------------------------------------------------------
 
-----------------------------------------------------------------
-UPDATE PRODUCT STOCK
-----------------------------------------------------------------
+Enter an option: 3
+Enter the product ID: 110
+How many units to add? 20
+Successfully added 20 units! New stock: 26
 
-Enter the product ID: 101
+Enter an option: 4
+New product ID: 111
+Product name: Correction Tape
+Price: $2.75
+Stock quantity: 20
+Successfully added 'Correction Tape' (ID: 111) to inventory!
 
-Current product: Notebook
-Current stock: 13
+Enter an option: 0
 
-Enter the new stock: 25
-
-==============================
-Stock updated successfully
-==============================
-
-
-----------------------------------------------------------------
-ADD A NEW PRODUCT
-----------------------------------------------------------------
-
-Enter the new product ID: 111
-Enter the product name: Correction Tape
-Enter the product price: $2.75
-Enter the stock quantity: 20
-
-==============================
-Correction Tape added successfully
-==============================
-
-
-================================================================
-
-+--------------------------------------------------------------+
-|                                                              |
-|                  THANK YOU FOR USING                         |
-|                                                              |
-|                     C A M P U S C A R T                      |
-|                                                              |
-+--------------------------------------------------------------+
+Enter an option: #
+Goodbye!
 ```
 
 ## Flow of a Successful Purchase
@@ -328,24 +298,24 @@ Correction Tape added successfully
 
 The current version does not yet provide:
 
-- Permanent database or file storage
-- User authentication for the administrator menu
-- Removal of individual products from the cart
-- Saved or searchable receipt history
-- Tax calculation or payment-method processing
+- Permanent storage for the inventory (product changes are lost when the program closes; only the transaction log is saved to a file)
+- Individual administrator accounts (there is a single shared admin password)
+- Updating the price of an existing product
+- A searchable receipt history or a way to view the log inside the app
+- Payment-method processing
 - Sales analytics or revenue reports
-- Configurable currency or settings
+- Configurable currency, tax rate, or discount settings
 
 These items are in the works for future development, but they are not part of the present program.
 
 ## Future Improvements
 
-- Save inventory and transaction data in JSON, CSV, or a database.
-- Allow customers to remove items or change quantities before checkout.
-- Generate unique receipt numbers and save transaction history.
-- Add daily and weekly sales reports.
-- Validate quantity input without stopping the program when non-numeric text is entered.
+- Save inventory data in JSON, CSV, or a database so changes persist between sessions.
+- Restore the option to update a product's price.
+- View and search the transaction history from inside the app.
+- Add daily and weekly sales reports built from the transaction log.
 - Support configurable taxes, discounts, and currencies.
+- Add unit tests for the cart, inventory, and checkout modules.
 
 ## Author
 

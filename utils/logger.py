@@ -1,140 +1,87 @@
-"""
-Logger Module
-
-Provides a decorator that records transaction details to a text file
-at the point of checkout in Campus Cart.
-"""
-
-import copy
-import functools
+"""Decorators module"""
+import os
+import time
 import uuid
 from datetime import datetime
+from functools import wraps
 
-DEFAULT_LOG_FILE = "transactions.txt"
-LINE_WIDTH = 60
+PROJECT_FOLDER = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_FOLDER = os.path.join(PROJECT_FOLDER, "logs")
+LOG_FILE = os.path.join(LOG_FOLDER, "transactions.txt")
+
+THICK = "=" * 50
+THIN = "-" * 50
 
 
-def _compute_subtotal(cart):
-    """Sum price * quantity for every item in a cart snapshot."""
-    return sum(item["price"] * item["quantity"] for item in cart)
+def _write_log(block):
+    """Add one finished log entry, followed by a blank line."""
+    os.makedirs(LOG_FOLDER, exist_ok=True)
+    with open(LOG_FILE, "a", encoding="utf-8") as file:
+        file.write(block + "\n\n")
 
 
-def _format_entry(txn_id, now, cart, subtotal, total, status, message, duration):
-    """Build the text block written to the log file for one transaction."""
-    lines = [
-        "=" * LINE_WIDTH,
-        f"Transaction ID : {txn_id}",
-        f"Date           : {now.strftime('%Y-%m-%d')}",
-        f"Time           : {now.strftime('%H:%M:%S')}",
+def _header(transaction_id, now, status, message):
+    """The top part of every entry (same for success and failure)."""
+    return [
+        THICK,
+        f"Transaction ID : {transaction_id}",
+        f"Date           : {now:%Y-%m-%d}",
+        f"Time           : {now:%H:%M:%S}",
         f"Status         : {status}",
         f"Message        : {message}",
-        "-" * LINE_WIDTH,
-        "Items Bought:",
+        THIN,
     ]
 
-    if cart:
-        for item in cart:
-            line_total = item["price"] * item["quantity"]
-            item_id = item.get("item_id") or "N/A"
+
+def log_transaction(func):
+    """Record every checkout (success or failure) in a text file."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        transaction_id = uuid.uuid4().hex[:8].upper()
+        now = datetime.now()
+        start = time.perf_counter()
+
+        try:
+            result = func(*args, **kwargs)
+        except Exception as error:
+            elapsed = time.perf_counter() - start
+            lines = _header(transaction_id, now, "FAILED", str(error))
+            lines.append(f"Processing Time: {elapsed:.4f}s")
+            lines.append(THICK)
+            _write_log("\n".join(lines))
+            raise
+
+        elapsed = time.perf_counter() - start
+
+        lines = _header(transaction_id, now, "SUCCESS", "Payment successful.")
+        lines.append("Items Bought:")
+        for line in result["lines"]:
             lines.append(
-                f"  [{item_id}] {item['name']} | "
-                f"{item['quantity']} x ${item['price']:.2f} = ${line_total:.2f}"
+                f"  [{line['item_id']}] {line['name']} | "
+                f"{line['qty']} x ${line['price']:.2f} = ${line['subtotal']:.2f}"
             )
-    else:
-        lines.append("  (cart was empty)")
+        lines.append(THIN)
 
-    total_text = f"${total:.2f}" if isinstance(total, (int, float)) else "N/A"
-    units = sum(item["quantity"] for item in cart)
+        units = sum(line["qty"] for line in result["lines"])
+        lines.append(f"Unique Items   : {len(result['lines'])}")
+        lines.append(f"Total Units    : {units}")
+        lines.append(f"Subtotal       : ${result['subtotal']:.2f}")
+        if result["discount"] > 0:
+            lines.append(f"Discount       : -${result['discount']:.2f}")
+        lines.append(f"Total (final)  : ${result['total']:.2f}")
 
-    lines += [
-        "-" * LINE_WIDTH,
-        f"Unique Items   : {len(cart)}",
-        f"Total Units    : {units}",
-        f"Subtotal       : ${subtotal:.2f}",
-        f"Total (final)  : {total_text}",
-        f"Processing Time: {duration:.4f}s",
-        "=" * LINE_WIDTH,
-        "",
-    ]
-    return "\n".join(lines)
+        payment = result["payment"]
+        lines.append(f"Payment Method : {payment['method']}")
+        if "reference" in payment:
+            lines.append(f"Reference      : {payment['reference']}")
+        if "change" in payment:
+            lines.append(f"Change Given   : ${payment['change']:.2f}")
 
+        lines.append(f"Processing Time: {elapsed:.4f}s")
+        lines.append(THICK)
 
-def _write_entry(log_file, entry):
-    """Append an entry to the log file (created if it doesn't exist)."""
-    with open(log_file, "a", encoding="utf-8") as f:
-        f.write(entry + "\n")
+        _write_log("\n".join(lines))
+        return result
 
-
-def log_transaction(log_file=DEFAULT_LOG_FILE):
-    """Decorator factory: logs every call of a checkout function to a txt file.
-
-    Args:
-        log_file (str): Path of the log file. Defaults to 'transactions.txt'.
-    """
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Locate the cart and snapshot it BEFORE checkout can modify/clear it
-            cart = kwargs.get("cart", args[0] if args else [])
-            cart_snapshot = copy.deepcopy(cart)
-            subtotal = _compute_subtotal(cart_snapshot)
-
-            txn_id = uuid.uuid4().hex[:8].upper()
-            start = datetime.now()
-            total = None
-
-            try:
-                result = func(*args, **kwargs)
-            except Exception as exc:
-                duration = (datetime.now() - start).total_seconds()
-                entry = _format_entry(
-                    txn_id, start, cart_snapshot, subtotal, None, "ERROR",
-                    f"{type(exc).__name__}: {exc}", duration,
-                )
-                _write_entry(log_file, entry)
-                raise  # let the app handle the failure as usual
-
-            duration = (datetime.now() - start).total_seconds()
-
-            # Unpack (success, message[, total])
-            success, message = result[0], result[1]
-            if len(result) > 2:
-                total = result[2]
-
-            status = "SUCCESS" if success else "FAILED"
-            entry = _format_entry(
-                txn_id, start, cart_snapshot, subtotal, total, status,
-                message, duration,
-            )
-            _write_entry(log_file, entry)
-            return result
-
-        return wrapper
-
-    return decorator
-
-
-if __name__ == "__main__":
-    # Demo: simulate checkouts and write them to a test log file
-    demo_log = "demo_transactions.txt"
-
-    @log_transaction(log_file=demo_log)
-    def checkout(cart, inventory):
-        subtotal = _compute_subtotal(cart)
-        if not cart:
-            return False, "Cart is empty.", 0.0
-        discount = 0.10 if subtotal > 20 else 0.0
-        total = round(subtotal * (1 - discount) * 1.075, 2)
-        cart.clear()  # checkout empties the cart; the log still keeps the items
-        return True, "Payment successful.", total
-
-    sample_cart = [
-        {"item_id": "101", "name": "Notebook", "price": 2.50, "quantity": 3},
-        {"item_id": "102", "name": "Campus Hoodie", "price": 25.00, "quantity": 1},
-    ]
-    print(checkout(sample_cart, inventory={}))
-    print(checkout([], inventory={}))
-    print(f"\nLog written to {demo_log}:\n")
-    with open(demo_log, encoding="utf-8") as f:
-        print(f.read())
+    return wrapper

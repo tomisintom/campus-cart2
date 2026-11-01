@@ -12,6 +12,7 @@ class Item:
         self.name = name
         self._price = price
         self._stock = stock
+        self._active = True
 
 
     @property
@@ -44,6 +45,20 @@ class Item:
             raise ValueError("Quantity must be at least 1")
         self._stock = quantity
 
+    @property
+    def is_active(self):
+        """False once the shop has removed this product."""
+        return self._active
+
+    def discontinue(self):
+        """Mark the product as no longer sold."""
+        self._active = False
+
+    def check_sellable(self):
+        """Raise an error if this item cannot be sold right now."""
+        if not self._active:
+            raise ValueError(f"{self.name} is no longer available")
+
 
 class PerishableItem(Item):
     """A product that expires."""
@@ -60,3 +75,8 @@ class PerishableItem(Item):
         if self.is_expired():
             raise ValueError(f"{self.name} has expired and cannot be sold")
         super().reduce_stock(quantity)
+
+    def check_sellable(self):
+        super().check_sellable()
+        if self.is_expired():
+            raise ValueError(f"{self.name} has expired and cannot be sold")

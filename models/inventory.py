@@ -35,9 +35,9 @@ class Inventory:
         self._items[item.item_id] = item
 
     def remove_item(self, item_id):
-        """Removes item from"""
-        if item_id not in self._items:
-            raise ValueError("Product ID not found")
+        """Remove a product."""
+        item = self.get_item(item_id)
+        item.discontinue()
         del self._items[item_id]
 
     def get_item(self, item_id):

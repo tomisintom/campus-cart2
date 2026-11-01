@@ -70,6 +70,17 @@ class ShoppingCart:
         """Checks if the cart is empty"""
         return not self._lines
 
+    def remove_unavailable(self):
+        """Drop items that can no longer be sold. Returns their names."""
+        removed = []
+        for item_id, (item, _) in list(self._lines.items()):
+            try:
+                item.check_sellable()
+            except ValueError:
+                removed.append(item.name)
+                del self._lines[item_id]
+        return removed
+
     def subtotal(self):
         """Price before discount"""
         return round(sum(line["subtotal"] for line in self.view_cart()), 2)
@@ -93,6 +104,7 @@ class ShoppingCart:
 
 
         for item, quantity in self._lines.values():
+            item.check_sellable()
             if quantity > item.stock:
                 raise ValueError(
                     f"Not enough stock for {item.name}. Only {item.stock} left"
